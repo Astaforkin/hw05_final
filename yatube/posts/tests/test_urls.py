@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
-
+# from django.core.cache import cache
 from ..models import Group, Post
 
 User = get_user_model()
@@ -26,6 +26,17 @@ class PostsURLTests(TestCase):
         )
 
     def setUp(self):
+        self.url_templates_names = {
+            '/': 'posts/index.html',
+            f'/group/{self.group.slug}/': 'posts/group_list.html',
+            f'/profile/{self.user.username}/': 'posts/profile.html',
+            f'/posts/{self.post.pk}/': 'posts/post_detail.html',
+            f'/posts/{self.post.pk}/edit/': 'posts/create_post.html',
+            '/create/': 'posts/create_post.html',
+            '/follow/': 'posts/follow.html',
+            '/about/author/': 'about/author.html',
+            '/about/tech/': 'about/tech.html',
+        }
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client_not_authorized = Client()
@@ -97,15 +108,7 @@ class PostsURLTests(TestCase):
 
     def test_urls_uses_correct_template(self):
         """Проверяем шаблоны приложения Posts."""
-        url_templates_names = {
-            '/': 'posts/index.html',
-            f'/group/{self.group.slug}/': 'posts/group_list.html',
-            f'/profile/{self.user.username}/': 'posts/profile.html',
-            f'/posts/{self.post.pk}/': 'posts/post_detail.html',
-            f'/posts/{self.post.pk}/edit/': 'posts/create_post.html',
-            '/create/': 'posts/create_post.html',
-        }
-        for address, template in url_templates_names.items():
+        for address, template in self.url_templates_names.items():
             with self.subTest(address=address):
                 response = self.authorized_client.get(address)
                 self.assertTemplateUsed(response, template)
