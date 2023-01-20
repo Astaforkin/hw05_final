@@ -125,6 +125,29 @@ class PostPagesTests(TestCase):
         self.assertFalse(Follow.objects.filter(user=user,
                                                author=author).exists())
 
+    def test_post_appears_in_feed(self):
+        """
+        Новая запись пользователя появляется в ленте тех, кто на него
+        подписан и не появляется в ленте тех, кто не подписан.
+        """
+        author = self.user
+        user_follow = self.user_follower
+        user_not_follow = self.user_not_follower
+        self.authorized_client_fol.get(
+            reverse('posts:profile_follow',
+                    kwargs={'username': author.username})
+        )
+        authors = Follow.objects.values_list('author').filter(user=user_follow)
+        post_list = Post.objects.filter(author__in=authors)
+        new_post = Post.objects.create(author=author,
+                                       text='Тестовый текст',)
+        self.assertIn(new_post, post_list)
+        new_authors = Follow.objects.values_list('author').filter(
+            user=user_not_follow
+        )
+        new_post_list = Post.objects.filter(author__in=new_authors)
+        self.assertNotIn(new_post, new_post_list)
+
 
 class PaginatorViewsTest(TestCase):
     @classmethod
