@@ -109,6 +109,8 @@ class PostsURLTests(TestCase):
         authorized_response = self.authorized_client.get('/unexisting_page/')
         self.assertEqual(guest_response.reason_phrase, 'Not Found')
         self.assertEqual(authorized_response.reason_phrase, 'Not Found')
+        self.assertTemplateNotUsed(guest_response, '/core/404.html')
+        self.assertTemplateNotUsed(authorized_response, '/core/404.html')
 
     def test_urls_uses_correct_template(self):
         """Проверяем шаблоны приложения Posts."""
