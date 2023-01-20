@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from ..models import Group, Post
+from ..models import Group, Post, User, Follow
 from ..paginators import LAST_POSTS
 
 User = get_user_model()
@@ -29,6 +29,14 @@ class PostPagesTests(TestCase):
     def setUp(self):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
+        self.user_follower = User.objects.create_user(username='follower')
+        self.authorized_client_fol = Client()
+        self.authorized_client_fol.force_login(self.user_follower)
+        self.user_not_follower = User.objects.create_user(
+            username='notfollower'
+        )
+        self.authorized_client_not_fol = Client()
+        self.authorized_client_not_fol.force_login(self.user_follower)
         cache.clear()
 
     def check_post_info(self, post):
@@ -85,6 +93,37 @@ class PostPagesTests(TestCase):
                 'posts:post_detail',
                 kwargs={'post_id': self.post.id}))
         self.check_post_info(response.context['post'])
+
+    def test_index_page_cache_correct(self):
+        """Кеш главной страницы работает правильно."""
+        response = self.authorized_client.get(reverse('posts:index'))
+        temp_post = Post.objects.get(id=1)
+        temp_post.delete()
+        new_response = self.authorized_client.get(reverse('posts:index'))
+        self.assertEqual(response.content, new_response.content)
+        cache.clear()
+        new_new_response = self.authorized_client.get(reverse('posts:index'))
+        self.assertNotEqual(response.content, new_new_response.content)
+
+    def test_authorized_user_can_follow_unfollow(self):
+        """
+        Авторизованный пользователь может подписываться на других
+        пользователей и отписываться от них
+        """
+        author = self.user
+        user = self.user_follower
+        self.authorized_client_fol.get(
+            reverse('posts:profile_follow',
+                    kwargs={'username': author.username})
+        )
+        self.assertTrue(Follow.objects.filter(user=user,
+                                              author=author).exists())
+        self.authorized_client_fol.get(
+            reverse('posts:profile_unfollow',
+                    kwargs={'username': author.username})
+        )
+        self.assertFalse(Follow.objects.filter(user=user,
+                                               author=author).exists())
 
 
 class PaginatorViewsTest(TestCase):
