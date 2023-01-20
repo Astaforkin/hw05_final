@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
-# from django.core.cache import cache
+from django.core.cache import cache
 from ..models import Group, Post
 
 User = get_user_model()
@@ -108,6 +108,7 @@ class PostsURLTests(TestCase):
 
     def test_urls_uses_correct_template(self):
         """Проверяем шаблоны приложения Posts."""
+        cache.clear()
         for address, template in self.url_templates_names.items():
             with self.subTest(address=address):
                 response = self.authorized_client.get(address)
