@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
-
+from django.core.cache import cache
 from ..models import Group, Post
 
 User = get_user_model()
@@ -26,6 +26,17 @@ class PostsURLTests(TestCase):
         )
 
     def setUp(self):
+        self.url_templates_names = {
+            '/': 'posts/index.html',
+            f'/group/{self.group.slug}/': 'posts/group_list.html',
+            f'/profile/{self.user.username}/': 'posts/profile.html',
+            f'/posts/{self.post.pk}/': 'posts/post_detail.html',
+            f'/posts/{self.post.pk}/edit/': 'posts/create_post.html',
+            '/create/': 'posts/create_post.html',
+            '/follow/': 'posts/follow.html',
+            '/about/author/': 'about/author.html',
+            '/about/tech/': 'about/tech.html',
+        }
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client_not_authorized = Client()
@@ -33,6 +44,7 @@ class PostsURLTests(TestCase):
         self.authorized_client_not_authorized.force_login(
             PostsURLTests.user_not_authorized
         )
+        cache.clear()
 
     def test_urls_exists_at_desired_location(self):
         """Проверяем доступность страниц приложения Posts."""
@@ -41,6 +53,8 @@ class PostsURLTests(TestCase):
             f'/group/{self.group.slug}/',
             f'/profile/{self.user.username}/',
             f'/posts/{self.post.pk}/',
+            '/about/author/',
+            '/about/tech/',
         ]
 
         for address in templates_url_names:
@@ -52,8 +66,9 @@ class PostsURLTests(TestCase):
                 self.assertEqual(authorized_response.reason_phrase, 'OK')
 
     def test_post_edit_url_exists_at_desired_location(self):
-        ("""Проверяем доступность страницы редактирования поста """
-         """приложения Posts.""")
+        """
+        Проверяем доступность страницы редактирования поста приложения Posts.
+        """
         address = f'/posts/{self.post.pk}/edit/'
         guest_response = self.guest_client.get(address, follow=True)
         authorized_response = self.authorized_client.get(address)
@@ -97,15 +112,7 @@ class PostsURLTests(TestCase):
 
     def test_urls_uses_correct_template(self):
         """Проверяем шаблоны приложения Posts."""
-        url_templates_names = {
-            '/': 'posts/index.html',
-            f'/group/{self.group.slug}/': 'posts/group_list.html',
-            f'/profile/{self.user.username}/': 'posts/profile.html',
-            f'/posts/{self.post.pk}/': 'posts/post_detail.html',
-            f'/posts/{self.post.pk}/edit/': 'posts/create_post.html',
-            '/create/': 'posts/create_post.html',
-        }
-        for address, template in url_templates_names.items():
+        for address, template in self.url_templates_names.items():
             with self.subTest(address=address):
                 response = self.authorized_client.get(address)
                 self.assertTemplateUsed(response, template)

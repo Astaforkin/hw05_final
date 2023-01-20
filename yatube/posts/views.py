@@ -1,6 +1,6 @@
 from .paginators import get_paginator
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Post, Group, User
+from .models import Post, Group, User, Follow
 from django.contrib.auth.decorators import login_required
 from .forms import PostForm, CommentForm
 from django.views.decorators.cache import cache_page
@@ -28,12 +28,18 @@ def group_posts(request, slug):
 
 
 def profile(request, username):
+    user = request.user
     author = get_object_or_404(User, username=username)
+    following = (
+        user.is_authenticated
+        and Follow.objects.filter(user=user, author=author)
+    )
     posts = author.posts.select_related('author', 'group')
     page_obj = get_paginator(posts, request)
     context = {
         'author': author,
         'page_obj': page_obj,
+        'following': following,
     }
     return render(request, 'posts/profile.html', context)
 
@@ -98,3 +104,41 @@ def add_comment(request, post_id):
         comment.post = post
         comment.save()
     return redirect('posts:post_detail', post_id=post_id)
+
+
+@login_required
+def follow_index(request):
+    user = request.user
+    posts = Post.objects.filter(
+        author__following__user=user
+    )
+    page_obj = get_paginator(posts, request)
+    context = {
+        'page_obj': page_obj
+    }
+    return render(request, 'posts/follow.html', context)
+
+
+@login_required
+def profile_follow(request, username):
+    user = request.user
+    author = get_object_or_404(User, username=username)
+    if author != user:
+        user.follower.get_or_create(
+            user=user,
+            author=author
+        )
+    return redirect('posts:profile', username)
+
+
+@login_required
+def profile_unfollow(request, username):
+    user = request.user
+    author = get_object_or_404(User, username=username)
+    follow = Follow.objects.filter(
+        user=user,
+        author=author
+    )
+    if follow.exists():
+        follow.delete()
+    return redirect('posts:profile', username)
