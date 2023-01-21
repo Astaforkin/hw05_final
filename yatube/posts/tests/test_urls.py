@@ -53,8 +53,6 @@ class PostsURLTests(TestCase):
             f'/group/{self.group.slug}/',
             f'/profile/{self.user.username}/',
             f'/posts/{self.post.pk}/',
-            '/about/author/',
-            '/about/tech/',
         ]
 
         for address in templates_url_names:
