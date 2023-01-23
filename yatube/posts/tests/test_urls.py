@@ -34,8 +34,6 @@ class PostsURLTests(TestCase):
             f'/posts/{self.post.pk}/edit/': 'posts/create_post.html',
             '/create/': 'posts/create_post.html',
             '/follow/': 'posts/follow.html',
-            '/about/author/': 'about/author.html',
-            '/about/tech/': 'about/tech.html',
         }
         self.guest_client = Client()
         self.authorized_client = Client()
